@@ -6,8 +6,7 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import javax.swing.border.LineBorder;
+import javax.swing.border.*;
 
 public class MainGUI {
     private JFrame frame;
@@ -143,39 +142,64 @@ public class MainGUI {
         frame.setLocationRelativeTo(null);
 
         // Header
-        JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.setBackground(new Color(0, 51, 102)); // Amazon-like dark blue
-        headerPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
+        JPanel headerPanel = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                GradientPaint gp = new GradientPaint(0, 0, new Color(0, 102, 204), 0, getHeight(), new Color(0, 51, 102));
+                g2d.setPaint(gp);
+                g2d.fillRect(0, 0, getWidth(), getHeight());
+            }
+        };
+        headerPanel.setBorder(new EmptyBorder(15, 20, 15, 20));
         JLabel titleLabel = new JLabel("ReadNest Online Bookstore", JLabel.LEFT);
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 26));
         titleLabel.setForeground(Color.WHITE);
-        JLabel userLabel = new JLabel("Welcome, " + currentUser.getName(), JLabel.RIGHT);
-        userLabel.setFont(new Font("Arial", Font.PLAIN, 16));
+
+        // User panel with welcome label and buttons
+        JPanel userPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        userPanel.setOpaque(false);
+        JLabel userLabel = new JLabel("Welcome, " + currentUser.getName());
+        userLabel.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         userLabel.setForeground(Color.WHITE);
+        JButton logoutButton = new JButton("Logout");
+        styleButton(logoutButton, false);
+        logoutButton.setPreferredSize(new Dimension(100, 30));
+        JButton deleteAccountButton = new JButton("Delete Account");
+        styleButton(deleteAccountButton, false);
+        deleteAccountButton.setPreferredSize(new Dimension(130, 30));
+        userPanel.add(userLabel);
+        userPanel.add(logoutButton);
+        userPanel.add(deleteAccountButton);
+
         headerPanel.add(titleLabel, BorderLayout.WEST);
-        headerPanel.add(userLabel, BorderLayout.EAST);
+        headerPanel.add(userPanel, BorderLayout.EAST);
 
         // Main content
-        JPanel mainPanel = new JPanel(new GridLayout(1, 2, 10, 0));
-        mainPanel.setBackground(Color.WHITE);
-        mainPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
+        JPanel mainPanel = new JPanel(new GridLayout(1, 2, 15, 0));
+        mainPanel.setBackground(new Color(245, 245, 245));
+        mainPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
 
         // Book list panel
+        JPanel bookPanel = new JPanel(new BorderLayout());
+        bookPanel.setBackground(Color.WHITE);
+        bookPanel.setBorder(new CompoundBorder(new LineBorder(new Color(200, 200, 200), 1), new EmptyBorder(10, 10, 10, 10)));
+        JLabel bookLabel = new JLabel("Available Books", JLabel.CENTER);
+        bookLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        bookLabel.setForeground(new Color(0, 51, 102));
+        bookLabel.setBorder(new EmptyBorder(0, 0, 10, 0));
+
         bookListModel = new DefaultListModel<>();
         for (Book b : system.getBooks()) bookListModel.addElement(b);
         bookList = new JList<>(bookListModel);
-        bookList.setFont(new Font("Arial", Font.PLAIN, 16));
-        bookList.setSelectionBackground(new Color(255, 147, 0)); // Amazon orange
+        bookList.setCellRenderer(new BookListRenderer());
+        bookList.setBackground(Color.WHITE);
+        bookList.setSelectionBackground(new Color(0, 102, 204));
         bookList.setSelectionForeground(Color.WHITE);
         JScrollPane bookScroll = new JScrollPane(bookList);
-        bookScroll.setBorder(new LineBorder(Color.LIGHT_GRAY, 1));
-
-        JPanel bookPanel = new JPanel(new BorderLayout());
-        bookPanel.setBackground(Color.WHITE);
-        JLabel bookLabel = new JLabel("Available Books", JLabel.CENTER);
-        bookLabel.setFont(new Font("Arial", Font.BOLD, 18));
-        bookPanel.add(bookLabel, BorderLayout.NORTH);
-        bookPanel.add(bookScroll, BorderLayout.CENTER);
+        bookScroll.setBorder(BorderFactory.createEmptyBorder());
 
         // Button panel
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
@@ -187,25 +211,32 @@ public class MainGUI {
         buttonPanel.add(addToCart);
         buttonPanel.add(purchase);
 
+        bookPanel.add(bookLabel, BorderLayout.NORTH);
+        bookPanel.add(bookScroll, BorderLayout.CENTER);
         bookPanel.add(buttonPanel, BorderLayout.SOUTH);
 
         // Cart panel
         JPanel cartPanel = new JPanel(new BorderLayout());
         cartPanel.setBackground(Color.WHITE);
+        cartPanel.setBorder(new CompoundBorder(new LineBorder(new Color(200, 200, 200), 1), new EmptyBorder(10, 10, 10, 10)));
         JLabel cartLabel = new JLabel("Your Cart", JLabel.CENTER);
-        cartLabel.setFont(new Font("Arial", Font.BOLD, 18));
-        cartLabel.setBorder(new EmptyBorder(0, 0, 0, 0)); // No padding
+        cartLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        cartLabel.setForeground(new Color(0, 51, 102));
+        cartLabel.setBorder(new EmptyBorder(0, 0, 0, 0));
         cartItemsPanel = new JPanel();
         cartItemsPanel.setLayout(new BoxLayout(cartItemsPanel, BoxLayout.Y_AXIS));
         cartItemsPanel.setBackground(Color.WHITE);
-        cartItemsPanel.setBorder(new EmptyBorder(0, 0, 0, 0)); // No padding
-        cartItemsPanel.setAlignmentY(Component.TOP_ALIGNMENT); // Align content to the top
+        cartItemsPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
+        cartItemsPanel.setAlignmentY(Component.TOP_ALIGNMENT);
         JScrollPane cartScroll = new JScrollPane(cartItemsPanel);
-        cartScroll.setBorder(new LineBorder(Color.LIGHT_GRAY, 1));
-        cartScroll.setViewportBorder(new EmptyBorder(0, 0, 0, 0)); // No padding in viewport
+        cartScroll.setBorder(BorderFactory.createEmptyBorder());
+        cartScroll.setViewportBorder(new EmptyBorder(0, 0, 0, 0));
         cartTotalLabel = new JLabel("Total: $0.00", JLabel.RIGHT);
-        cartTotalLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        cartTotalLabel.setBorder(new EmptyBorder(10, 0, 10, 10));
+        cartTotalLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        cartTotalLabel.setForeground(Color.WHITE);
+        cartTotalLabel.setOpaque(true);
+        cartTotalLabel.setBackground(new Color(0, 102, 204));
+        cartTotalLabel.setBorder(new EmptyBorder(10, 15, 10, 15));
         cartPanel.add(cartLabel, BorderLayout.NORTH);
         cartPanel.add(cartScroll, BorderLayout.CENTER);
         cartPanel.add(cartTotalLabel, BorderLayout.SOUTH);
@@ -220,7 +251,7 @@ public class MainGUI {
         addToCart.addActionListener(e -> {
             Book selected = bookList.getSelectedValue();
             if (selected == null) {
-                JOptionPane.showMessageDialog(frame, "Please select a book.", "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(null, "Please select a book.", "Error", JOptionPane.ERROR_MESSAGE);
                 return;
             }
             Cart cart = currentUser.getCart();
@@ -233,20 +264,20 @@ public class MainGUI {
                     if (newQty <= selected.getStock()) {
                         existingItem.get().setQuantity(newQty);
                     } else {
-                        JOptionPane.showMessageDialog(frame, "Cannot exceed stock limit.", "Error", JOptionPane.ERROR_MESSAGE);
+                        JOptionPane.showMessageDialog(null, "Cannot exceed stock limit.", "Error", JOptionPane.ERROR_MESSAGE);
                     }
                 } else {
                     cart.addItem(selected, 1);
                 }
                 refreshCart();
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(frame, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(null, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             }
         });
 
         purchase.addActionListener(e -> {
             if (currentUser.getCart().getItems().isEmpty()) {
-                JOptionPane.showMessageDialog(frame, "Your cart is empty.", "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(null, "Your cart is empty.", "Error", JOptionPane.ERROR_MESSAGE);
                 return;
             }
             for (CartItem item : currentUser.getCart().getItems()) {
@@ -255,7 +286,7 @@ public class MainGUI {
                         try {
                             item.getBook().reduceStock(item.getQuantity());
                         } catch (Exception ex) {
-                            JOptionPane.showMessageDialog(frame, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                            JOptionPane.showMessageDialog(null, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
                         }
                     }
                 });
@@ -267,8 +298,32 @@ public class MainGUI {
             currentUser.getCart().clear();
             refreshCart();
             bookList.repaint();
-            JOptionPane.showMessageDialog(frame, "Purchase successful!", "Success", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(null, "Purchase successful!", "Success", JOptionPane.INFORMATION_MESSAGE);
             executor = Executors.newFixedThreadPool(3);
+        });
+
+        logoutButton.addActionListener(e -> {
+            saveCart();
+            frame.dispose();
+            currentUser = null;
+            showWelcomeUI();
+        });
+
+        deleteAccountButton.addActionListener(e -> {
+            int confirm = JOptionPane.showConfirmDialog(frame, "Are you sure you want to delete your account? This action cannot be undone.",
+                "Confirm Account Deletion", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+            if (confirm == JOptionPane.YES_OPTION) {
+                File cartFile = new File("cart_" + currentUser.getUserId() + ".dat");
+                if (cartFile.exists()) {
+                    cartFile.delete();
+                }
+                users.remove(currentUser);
+                saveUsers();
+                frame.dispose();
+                currentUser = null;
+                JOptionPane.showMessageDialog(null, "Account deleted successfully.", "Success", JOptionPane.INFORMATION_MESSAGE);
+                showWelcomeUI();
+            }
         });
 
         frame.setVisible(true);
@@ -290,7 +345,7 @@ public class MainGUI {
             button.setFocusPainted(false);
             button.setPreferredSize(new Dimension(40, 25));
         } else {
-            button.setBackground(isSmall ? new Color(200, 200, 200) : new Color(255, 147, 0)); // Amazon orange for main buttons, gray for small buttons
+            button.setBackground(isSmall ? new Color(200, 200, 200) : new Color(255, 147, 0)); // Gray for small buttons, orange for main buttons
             button.setForeground(isSmall ? Color.BLACK : Color.WHITE);
             button.setFont(new Font("Arial", Font.BOLD, isSmall ? 12 : 14));
             button.setBorder(new LineBorder(Color.DARK_GRAY, 1));
@@ -303,15 +358,60 @@ public class MainGUI {
         }
     }
 
+    private class BookListRenderer extends JPanel implements ListCellRenderer<Book> {
+        private JLabel titleLabel;
+        private JLabel detailsLabel;
+
+        public BookListRenderer() {
+            setLayout(new BorderLayout());
+            setBorder(new EmptyBorder(10, 10, 10, 10));
+
+            titleLabel = new JLabel();
+            titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+            titleLabel.setForeground(new Color(0, 51, 102));
+
+            detailsLabel = new JLabel();
+            detailsLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+            detailsLabel.setForeground(Color.GRAY);
+
+            JPanel textPanel = new JPanel(new GridLayout(2, 1, 0, 2));
+            textPanel.setOpaque(false);
+            textPanel.add(titleLabel);
+            textPanel.add(detailsLabel);
+
+            add(textPanel, BorderLayout.CENTER);
+        }
+
+        @Override
+        public Component getListCellRendererComponent(JList<? extends Book> list, Book book, int index,
+                                                      boolean isSelected, boolean cellHasFocus) {
+            titleLabel.setText(book.toString());
+            detailsLabel.setText(String.format("%s | $%.2f | Stock: %d", book.getCategory(), book.getPrice(), book.getStock()));
+
+            if (isSelected) {
+                setBackground(list.getSelectionBackground());
+                setForeground(list.getSelectionForeground());
+                titleLabel.setForeground(Color.WHITE);
+                detailsLabel.setForeground(Color.WHITE);
+            } else {
+                setBackground(index % 2 == 0 ? Color.WHITE : new Color(245, 245, 245));
+                setForeground(list.getForeground());
+                titleLabel.setForeground(new Color(0, 51, 102));
+                detailsLabel.setForeground(Color.GRAY);
+            }
+            return this;
+        }
+    }
+
     private void refreshCart() {
         cartItemsPanel.removeAll();
         double total = 0.0;
         for (CartItem item : currentUser.getCart().getItems()) {
             JPanel itemPanel = new JPanel(new GridBagLayout());
-            itemPanel.setBackground(Color.WHITE);
-            itemPanel.setBorder(new EmptyBorder(0, 0, 0, 0)); // No padding to remove gaps between items
+            itemPanel.setBackground(new Color(250, 250, 250));
+            itemPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
             GridBagConstraints gbc = new GridBagConstraints();
-            gbc.insets = new Insets(0, 3, 0, 3);
+            gbc.insets = new Insets(5, 5, 5, 5);
             gbc.anchor = GridBagConstraints.WEST;
 
             // Decrease button
@@ -332,9 +432,10 @@ public class MainGUI {
 
             // Quantity text field
             JTextField qtyField = new JTextField(String.valueOf(item.getQuantity()), 3);
-            qtyField.setFont(new Font("Arial", Font.PLAIN, 14));
+            qtyField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
             qtyField.setHorizontalAlignment(JTextField.CENTER);
             qtyField.setPreferredSize(new Dimension(40, 25));
+            qtyField.setBorder(new LineBorder(new Color(200, 200, 200), 1));
             qtyField.addFocusListener(new FocusAdapter() {
                 @Override
                 public void focusLost(FocusEvent e) {
@@ -354,7 +455,7 @@ public class MainGUI {
                     item.setQuantity(newQty);
                     refreshCart();
                 } else {
-                    JOptionPane.showMessageDialog(frame, "Cannot exceed stock limit.", "Error", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(null, "Cannot exceed stock limit.", "Error", JOptionPane.ERROR_MESSAGE);
                 }
             });
             gbc.gridx = 2;
@@ -366,12 +467,14 @@ public class MainGUI {
                 item.getBook().getCategory(),
                 item.getBook().getPrice(),
                 item.getBook().getStock());
-            JLabel itemLabel = new JLabel(bookInfo);
-            itemLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+            JLabel bookLabel = new JLabel(bookInfo);
+            bookLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+            bookLabel.setForeground(new Color(50, 50, 50));
             gbc.gridx = 3;
             gbc.weightx = 1.0;
             gbc.fill = GridBagConstraints.HORIZONTAL;
-            itemPanel.add(itemLabel, gbc);
+            gbc.insets = new Insets(5, 10, 5, 10);
+            itemPanel.add(bookLabel, gbc);
 
             // Delete button
             JButton deleteButton = new JButton("Del");
@@ -383,12 +486,13 @@ public class MainGUI {
             gbc.gridx = 4;
             gbc.weightx = 0.0;
             gbc.fill = GridBagConstraints.NONE;
+            gbc.insets = new Insets(5, 5, 5, 5);
             itemPanel.add(deleteButton, gbc);
 
             cartItemsPanel.add(itemPanel);
             total += item.getQuantity() * item.getBook().getPrice();
         }
-        DecimalFormat df = new DecimalFormat("#.00");
+        DecimalFormat df = new DecimalFormat("#0.00");
         cartTotalLabel.setText("Total: $" + df.format(total));
         cartItemsPanel.revalidate();
         cartItemsPanel.repaint();
@@ -402,17 +506,17 @@ public class MainGUI {
             } else if (newQty <= item.getBook().getStock()) {
                 item.setQuantity(newQty);
             } else {
-                qtyField.setText(String.valueOf(item.getQuantity())); // Revert to original quantity
-                JOptionPane.showMessageDialog(frame, "Cannot exceed stock limit.", "Error", JOptionPane.ERROR_MESSAGE);
+                qtyField.setText(String.valueOf(item.getQuantity()));
+                JOptionPane.showMessageDialog(null, "Cannot exceed stock limit.", "Error", JOptionPane.ERROR_MESSAGE);
                 return;
             }
             refreshCart();
         } catch (NumberFormatException ex) {
-            qtyField.setText(String.valueOf(item.getQuantity())); // Revert to original quantity
-            JOptionPane.showMessageDialog(frame, "Invalid quantity.", "Error", JOptionPane.ERROR_MESSAGE);
+            qtyField.setText(String.valueOf(item.getQuantity()));
+            JOptionPane.showMessageDialog(null, "Invalid quantity.", "Error", JOptionPane.ERROR_MESSAGE);
         } catch (Exception ex) {
-            qtyField.setText(String.valueOf(item.getQuantity())); // Revert to original quantity
-            JOptionPane.showMessageDialog(frame, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            qtyField.setText(String.valueOf(item.getQuantity()));
+            JOptionPane.showMessageDialog(null, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -455,7 +559,9 @@ public class MainGUI {
         try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream("cart_" + currentUser.getUserId() + ".dat"))) {
             out.writeObject(currentUser.getCart());
             out.flush();
-        } catch (IOException ignored) {}
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public static void main(String[] args) {
