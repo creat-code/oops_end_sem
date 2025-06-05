@@ -194,11 +194,12 @@ public class MainGUI {
         cartPanel.setBackground(Color.WHITE);
         JLabel cartLabel = new JLabel("Your Cart", JLabel.CENTER);
         cartLabel.setFont(new Font("Arial", Font.BOLD, 18));
-        cartLabel.setBorder(new EmptyBorder(0, 0, 0, 0)); // No padding to touch the top border
+        cartLabel.setBorder(new EmptyBorder(0, 0, 0, 0)); // No padding
         cartItemsPanel = new JPanel();
         cartItemsPanel.setLayout(new BoxLayout(cartItemsPanel, BoxLayout.Y_AXIS));
         cartItemsPanel.setBackground(Color.WHITE);
         cartItemsPanel.setBorder(new EmptyBorder(0, 0, 0, 0)); // No padding
+        cartItemsPanel.setAlignmentY(Component.TOP_ALIGNMENT); // Align content to the top
         JScrollPane cartScroll = new JScrollPane(cartItemsPanel);
         cartScroll.setBorder(new LineBorder(Color.LIGHT_GRAY, 1));
         cartScroll.setViewportBorder(new EmptyBorder(0, 0, 0, 0)); // No padding in viewport
@@ -224,21 +225,17 @@ public class MainGUI {
             }
             Cart cart = currentUser.getCart();
             try {
-                boolean found = false;
-                for (CartItem item : cart.getItems()) {
-                    if (item.getBook().equals(selected)) {
-                        int newQty = item.getQuantity() + 1;
-                        if (newQty <= selected.getStock()) {
-                            cart.removeItem(selected);
-                            cart.addItem(selected, newQty);
-                        } else {
-                            JOptionPane.showMessageDialog(frame, "Cannot exceed stock limit.", "Error", JOptionPane.ERROR_MESSAGE);
-                        }
-                        found = true;
-                        break;
+                Optional<CartItem> existingItem = cart.getItems().stream()
+                    .filter(item -> item.getBook().equals(selected))
+                    .findFirst();
+                if (existingItem.isPresent()) {
+                    int newQty = existingItem.get().getQuantity() + 1;
+                    if (newQty <= selected.getStock()) {
+                        existingItem.get().setQuantity(newQty);
+                    } else {
+                        JOptionPane.showMessageDialog(frame, "Cannot exceed stock limit.", "Error", JOptionPane.ERROR_MESSAGE);
                     }
-                }
-                if (!found) {
+                } else {
                     cart.addItem(selected, 1);
                 }
                 refreshCart();
@@ -312,7 +309,7 @@ public class MainGUI {
         for (CartItem item : currentUser.getCart().getItems()) {
             JPanel itemPanel = new JPanel(new GridBagLayout());
             itemPanel.setBackground(Color.WHITE);
-            itemPanel.setBorder(new EmptyBorder(2, 5, 2, 5));
+            itemPanel.setBorder(new EmptyBorder(0, 0, 0, 0)); // No padding to remove gaps between items
             GridBagConstraints gbc = new GridBagConstraints();
             gbc.insets = new Insets(0, 3, 0, 3);
             gbc.anchor = GridBagConstraints.WEST;
@@ -325,12 +322,7 @@ public class MainGUI {
                 if (newQty <= 0) {
                     currentUser.getCart().removeItem(item.getBook());
                 } else {
-                    currentUser.getCart().removeItem(item.getBook());
-                    try {
-                        currentUser.getCart().addItem(item.getBook(), newQty);
-                    } catch (Exception ex) {
-                        JOptionPane.showMessageDialog(frame, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-                    }
+                    item.setQuantity(newQty);
                 }
                 refreshCart();
             });
@@ -359,13 +351,8 @@ public class MainGUI {
             increaseButton.addActionListener(e -> {
                 int newQty = item.getQuantity() + 1;
                 if (newQty <= item.getBook().getStock()) {
-                    currentUser.getCart().removeItem(item.getBook());
-                    try {
-                        currentUser.getCart().addItem(item.getBook(), newQty);
-                        refreshCart();
-                    } catch (Exception ex) {
-                        JOptionPane.showMessageDialog(frame, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-                    }
+                    item.setQuantity(newQty);
+                    refreshCart();
                 } else {
                     JOptionPane.showMessageDialog(frame, "Cannot exceed stock limit.", "Error", JOptionPane.ERROR_MESSAGE);
                 }
@@ -413,8 +400,7 @@ public class MainGUI {
             if (newQty <= 0) {
                 currentUser.getCart().removeItem(item.getBook());
             } else if (newQty <= item.getBook().getStock()) {
-                currentUser.getCart().removeItem(item.getBook());
-                currentUser.getCart().addItem(item.getBook(), newQty);
+                item.setQuantity(newQty);
             } else {
                 qtyField.setText(String.valueOf(item.getQuantity())); // Revert to original quantity
                 JOptionPane.showMessageDialog(frame, "Cannot exceed stock limit.", "Error", JOptionPane.ERROR_MESSAGE);
