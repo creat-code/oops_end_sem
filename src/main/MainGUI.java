@@ -1,4 +1,5 @@
 import java.awt.*;
+import java.awt.event.*;
 import java.io.*;
 import java.text.DecimalFormat;
 import java.util.*;
@@ -39,8 +40,8 @@ public class MainGUI {
 
         JButton loginButton = new JButton("Login");
         JButton registerButton = new JButton("Register");
-        styleButton(loginButton);
-        styleButton(registerButton);
+        styleButton(loginButton, false);
+        styleButton(registerButton, false);
 
         gbc.gridx = 0;
         gbc.gridy = 0;
@@ -181,8 +182,8 @@ public class MainGUI {
         buttonPanel.setBackground(Color.WHITE);
         JButton addToCart = new JButton("Add to Cart");
         JButton purchase = new JButton("Proceed to Checkout");
-        styleButton(addToCart);
-        styleButton(purchase);
+        styleButton(addToCart, false);
+        styleButton(purchase, false);
         buttonPanel.add(addToCart);
         buttonPanel.add(purchase);
 
@@ -193,11 +194,14 @@ public class MainGUI {
         cartPanel.setBackground(Color.WHITE);
         JLabel cartLabel = new JLabel("Your Cart", JLabel.CENTER);
         cartLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        cartLabel.setBorder(new EmptyBorder(0, 0, 0, 0)); // No padding to touch the top border
         cartItemsPanel = new JPanel();
         cartItemsPanel.setLayout(new BoxLayout(cartItemsPanel, BoxLayout.Y_AXIS));
         cartItemsPanel.setBackground(Color.WHITE);
+        cartItemsPanel.setBorder(new EmptyBorder(0, 0, 0, 0)); // No padding
         JScrollPane cartScroll = new JScrollPane(cartItemsPanel);
         cartScroll.setBorder(new LineBorder(Color.LIGHT_GRAY, 1));
+        cartScroll.setViewportBorder(new EmptyBorder(0, 0, 0, 0)); // No padding in viewport
         cartTotalLabel = new JLabel("Total: $0.00", JLabel.RIGHT);
         cartTotalLabel.setFont(new Font("Arial", Font.BOLD, 16));
         cartTotalLabel.setBorder(new EmptyBorder(10, 0, 10, 10));
@@ -218,14 +222,26 @@ public class MainGUI {
                 JOptionPane.showMessageDialog(frame, "Please select a book.", "Error", JOptionPane.ERROR_MESSAGE);
                 return;
             }
-            String qtyStr = JOptionPane.showInputDialog(frame, "Enter quantity:");
+            Cart cart = currentUser.getCart();
             try {
-                int qty = Integer.parseInt(qtyStr);
-                if (qty < 1) throw new NumberFormatException();
-                currentUser.getCart().addItem(selected, qty);
+                boolean found = false;
+                for (CartItem item : cart.getItems()) {
+                    if (item.getBook().equals(selected)) {
+                        int newQty = item.getQuantity() + 1;
+                        if (newQty <= selected.getStock()) {
+                            cart.removeItem(selected);
+                            cart.addItem(selected, newQty);
+                        } else {
+                            JOptionPane.showMessageDialog(frame, "Cannot exceed stock limit.", "Error", JOptionPane.ERROR_MESSAGE);
+                        }
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    cart.addItem(selected, 1);
+                }
                 refreshCart();
-            } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(frame, "Invalid quantity.", "Error", JOptionPane.ERROR_MESSAGE);
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(frame, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             }
@@ -268,32 +284,120 @@ public class MainGUI {
         refreshCart();
     }
 
-    private void styleButton(JButton button) {
-        button.setBackground(new Color(255, 147, 0)); // Amazon orange
-        button.setForeground(Color.WHITE);
-        button.setFont(new Font("Arial", Font.BOLD, 14));
-        button.setBorder(new LineBorder(Color.DARK_GRAY, 1));
-        button.setFocusPainted(false);
-        button.setPreferredSize(button.getText().equals("Delete") ? new Dimension(80, 25) : new Dimension(150, 35));
+    private void styleButton(JButton button, boolean isSmall) {
+        if (button.getText().equals("Del")) {
+            button.setBackground(new Color(255, 0, 0)); // Red for delete button
+            button.setForeground(Color.WHITE);
+            button.setFont(new Font("Arial", Font.BOLD, 12));
+            button.setBorder(new LineBorder(Color.DARK_GRAY, 1));
+            button.setFocusPainted(false);
+            button.setPreferredSize(new Dimension(40, 25));
+        } else {
+            button.setBackground(isSmall ? new Color(200, 200, 200) : new Color(255, 147, 0)); // Amazon orange for main buttons, gray for small buttons
+            button.setForeground(isSmall ? Color.BLACK : Color.WHITE);
+            button.setFont(new Font("Arial", Font.BOLD, isSmall ? 12 : 14));
+            button.setBorder(new LineBorder(Color.DARK_GRAY, 1));
+            button.setFocusPainted(false);
+            if (isSmall) {
+                button.setPreferredSize(new Dimension(25, 25));
+            } else {
+                button.setPreferredSize(new Dimension(150, 35));
+            }
+        }
     }
 
     private void refreshCart() {
         cartItemsPanel.removeAll();
         double total = 0.0;
         for (CartItem item : currentUser.getCart().getItems()) {
-            JPanel itemPanel = new JPanel(new BorderLayout());
+            JPanel itemPanel = new JPanel(new GridBagLayout());
             itemPanel.setBackground(Color.WHITE);
-            itemPanel.setBorder(new EmptyBorder(5, 10, 5, 10));
-            JLabel itemLabel = new JLabel(item.getQuantity() + " " + item.getBook().toString());
-            itemLabel.setFont(new Font("Arial", Font.PLAIN, 16));
-            JButton deleteButton = new JButton("Delete");
-            styleButton(deleteButton);
+            itemPanel.setBorder(new EmptyBorder(2, 5, 2, 5));
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.insets = new Insets(0, 3, 0, 3);
+            gbc.anchor = GridBagConstraints.WEST;
+
+            // Decrease button
+            JButton decreaseButton = new JButton("-");
+            styleButton(decreaseButton, true);
+            decreaseButton.addActionListener(e -> {
+                int newQty = item.getQuantity() - 1;
+                if (newQty <= 0) {
+                    currentUser.getCart().removeItem(item.getBook());
+                } else {
+                    currentUser.getCart().removeItem(item.getBook());
+                    try {
+                        currentUser.getCart().addItem(item.getBook(), newQty);
+                    } catch (Exception ex) {
+                        JOptionPane.showMessageDialog(frame, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+                refreshCart();
+            });
+            gbc.gridx = 0;
+            gbc.gridy = 0;
+            itemPanel.add(decreaseButton, gbc);
+
+            // Quantity text field
+            JTextField qtyField = new JTextField(String.valueOf(item.getQuantity()), 3);
+            qtyField.setFont(new Font("Arial", Font.PLAIN, 14));
+            qtyField.setHorizontalAlignment(JTextField.CENTER);
+            qtyField.setPreferredSize(new Dimension(40, 25));
+            qtyField.addFocusListener(new FocusAdapter() {
+                @Override
+                public void focusLost(FocusEvent e) {
+                    updateQuantityFromTextField(qtyField, item);
+                }
+            });
+            qtyField.addActionListener(e -> updateQuantityFromTextField(qtyField, item));
+            gbc.gridx = 1;
+            itemPanel.add(qtyField, gbc);
+
+            // Increase button
+            JButton increaseButton = new JButton("+");
+            styleButton(increaseButton, true);
+            increaseButton.addActionListener(e -> {
+                int newQty = item.getQuantity() + 1;
+                if (newQty <= item.getBook().getStock()) {
+                    currentUser.getCart().removeItem(item.getBook());
+                    try {
+                        currentUser.getCart().addItem(item.getBook(), newQty);
+                        refreshCart();
+                    } catch (Exception ex) {
+                        JOptionPane.showMessageDialog(frame, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(frame, "Cannot exceed stock limit.", "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            });
+            gbc.gridx = 2;
+            itemPanel.add(increaseButton, gbc);
+
+            // Book info
+            String bookInfo = String.format("%s (%s) $%.2f [Stock: %d]",
+                item.getBook().toString(),
+                item.getBook().getCategory(),
+                item.getBook().getPrice(),
+                item.getBook().getStock());
+            JLabel itemLabel = new JLabel(bookInfo);
+            itemLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+            gbc.gridx = 3;
+            gbc.weightx = 1.0;
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+            itemPanel.add(itemLabel, gbc);
+
+            // Delete button
+            JButton deleteButton = new JButton("Del");
+            styleButton(deleteButton, true);
             deleteButton.addActionListener(e -> {
                 currentUser.getCart().removeItem(item.getBook());
                 refreshCart();
             });
-            itemPanel.add(itemLabel, BorderLayout.CENTER);
-            itemPanel.add(deleteButton, BorderLayout.EAST);
+            gbc.gridx = 4;
+            gbc.weightx = 0.0;
+            gbc.fill = GridBagConstraints.NONE;
+            itemPanel.add(deleteButton, gbc);
+
             cartItemsPanel.add(itemPanel);
             total += item.getQuantity() * item.getBook().getPrice();
         }
@@ -301,6 +405,29 @@ public class MainGUI {
         cartTotalLabel.setText("Total: $" + df.format(total));
         cartItemsPanel.revalidate();
         cartItemsPanel.repaint();
+    }
+
+    private void updateQuantityFromTextField(JTextField qtyField, CartItem item) {
+        try {
+            int newQty = Integer.parseInt(qtyField.getText().trim());
+            if (newQty <= 0) {
+                currentUser.getCart().removeItem(item.getBook());
+            } else if (newQty <= item.getBook().getStock()) {
+                currentUser.getCart().removeItem(item.getBook());
+                currentUser.getCart().addItem(item.getBook(), newQty);
+            } else {
+                qtyField.setText(String.valueOf(item.getQuantity())); // Revert to original quantity
+                JOptionPane.showMessageDialog(frame, "Cannot exceed stock limit.", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            refreshCart();
+        } catch (NumberFormatException ex) {
+            qtyField.setText(String.valueOf(item.getQuantity())); // Revert to original quantity
+            JOptionPane.showMessageDialog(frame, "Invalid quantity.", "Error", JOptionPane.ERROR_MESSAGE);
+        } catch (Exception ex) {
+            qtyField.setText(String.valueOf(item.getQuantity())); // Revert to original quantity
+            JOptionPane.showMessageDialog(frame, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private void loadUsers() {
