@@ -338,14 +338,14 @@ public class MainGUI {
 
     private void styleButton(JButton button, boolean isSmall) {
         if (button.getText().equals("Del")) {
-            button.setBackground(new Color(255, 0, 0)); // Red for delete button
+            button.setBackground(new Color(255, 0, 0)); 
             button.setForeground(Color.WHITE);
             button.setFont(new Font("Arial", Font.BOLD, 12));
             button.setBorder(new LineBorder(Color.DARK_GRAY, 1));
             button.setFocusPainted(false);
             button.setPreferredSize(new Dimension(40, 25));
         } else {
-            button.setBackground(isSmall ? new Color(200, 200, 200) : new Color(255, 147, 0)); // Gray for small buttons, orange for main buttons
+            button.setBackground(isSmall ? new Color(200, 200, 200) : new Color(255, 147, 0)); 
             button.setForeground(isSmall ? Color.BLACK : Color.WHITE);
             button.setFont(new Font("Arial", Font.BOLD, isSmall ? 12 : 14));
             button.setBorder(new LineBorder(Color.DARK_GRAY, 1));
